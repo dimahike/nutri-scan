@@ -25,13 +25,20 @@ const Home = ({ initialTab = "upload" }: HomeProps) => {
     allergens: string[];
   } | null>(null);
 
-  const handleImageUpload = async (file: File) => {
+  const handleImageUpload = async (
+    files: File[],
+    details: {
+      weight?: string;
+      servingSize?: string;
+      additionalNotes?: string;
+    },
+  ) => {
     setIsLoading(true);
     // Simulate API call
     setTimeout(() => {
       setRecognizedProduct({
         name: "Sample Food Product",
-        imageUrl: URL.createObjectURL(file),
+        imageUrl: URL.createObjectURL(files[0]),
         isSafe: false,
         nutritionalValues: [
           { name: "Calories", amount: "250", unit: "kcal" },
