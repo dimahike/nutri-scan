@@ -21,7 +21,7 @@ interface ImageDetails {
 const FoodRecognizer = ({
   onImageUpload = () => {},
   isLoading = false,
-}: ImageUploaderProps) => {
+}: FoodRecognizerProps) => {
   const [previews, setPreviews] = useState<string[]>([]);
   const [details, setDetails] = useState<ImageDetails>({
     weight: "",

@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useCallback, useState } from "react";
+import { useDropzone } from "react-dropzone";
 import { useForm } from "react-hook-form";
 import { Card } from "./ui/card";
 import { Input } from "./ui/input";
@@ -25,7 +26,7 @@ interface FormData {
   potassium: string;
   sodium: string;
   allergens: string[];
-  image: FileList;
+  image: File[];
 }
 
 interface ManualEntryFormProps {
@@ -48,7 +49,39 @@ const ManualEntryForm = ({
   onSubmit = (data) => console.log(data),
   isLoading = false,
 }: ManualEntryFormProps) => {
-  const { register, handleSubmit } = useForm<FormData>();
+  const [previews, setPreviews] = useState<string[]>([]);
+  const { register, handleSubmit, setValue } = useForm<FormData>({
+    defaultValues: {
+      allergens: [],
+      productName: "",
+      description: "",
+      calories: "0",
+      protein: "0",
+      carbohydrates: "0",
+      fat: "0",
+      potassium: "0",
+      sodium: "0",
+    },
+  });
+
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      const newPreviews = acceptedFiles.map((file) =>
+        URL.createObjectURL(file),
+      );
+      setPreviews((prev) => [...prev, ...newPreviews]);
+      setValue("image", acceptedFiles);
+    },
+    [setValue],
+  );
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      "image/*": [".jpeg", ".jpg", ".png", ".webp"],
+    },
+    multiple: true,
+  });
 
   return (
     <div className="w-full max-w-2xl p-6 bg-white">
@@ -59,22 +92,50 @@ const ManualEntryForm = ({
 
             {/* Image Upload */}
             <div className="space-y-2">
-              <Label htmlFor="image">Product Image</Label>
-              <div className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50">
-                <Input
-                  id="image"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  {...register("image")}
-                />
-                <label htmlFor="image" className="cursor-pointer">
+              <Label htmlFor="image">Product Images</Label>
+              <div
+                {...getRootProps()}
+                className={`h-[200px] rounded-lg border-2 border-dashed flex flex-col items-center justify-center p-6 transition-colors
+                  ${isDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300"}
+                  ${isLoading ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-blue-400"}`}
+              >
+                <input {...getInputProps()} disabled={isLoading} />
+                <div className="text-center">
                   <ImagePlus className="mx-auto h-12 w-12 text-gray-400" />
-                  <span className="mt-2 block text-sm text-gray-600">
-                    Click to upload or drag and drop
-                  </span>
-                </label>
+                  <h3 className="mt-4 text-lg font-medium text-gray-900">
+                    {isDragActive
+                      ? "Drop the images here"
+                      : "Drag & Drop your images"}
+                  </h3>
+                  <p className="mt-2 text-sm text-gray-500">or</p>
+                  <Button
+                    variant="secondary"
+                    className="mt-2"
+                    disabled={isLoading}
+                  >
+                    Browse Files
+                  </Button>
+                  <p className="mt-4 text-xs text-gray-500">
+                    Supported formats: JPEG, PNG, WebP
+                  </p>
+                </div>
               </div>
+              {previews.length > 0 && (
+                <div className="grid grid-cols-4 gap-2 mt-4">
+                  {previews.map((preview, index) => (
+                    <div
+                      key={index}
+                      className="relative aspect-square rounded-lg overflow-hidden"
+                    >
+                      <img
+                        src={preview}
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Basic Information */}
@@ -165,7 +226,26 @@ const ManualEntryForm = ({
               <div className="grid grid-cols-2 gap-2">
                 {commonAllergens.map((allergen) => (
                   <div key={allergen} className="flex items-center space-x-2">
-                    <Checkbox id={allergen} {...register("allergens")} />
+                    <Checkbox
+                      id={allergen}
+                      onCheckedChange={(checked) => {
+                        const currentAllergens =
+                          register("allergens").value || [];
+                        if (checked) {
+                          setValue("allergens", [
+                            ...currentAllergens,
+                            allergen,
+                          ]);
+                        } else {
+                          setValue(
+                            "allergens",
+                            currentAllergens.filter(
+                              (a: string) => a !== allergen,
+                            ),
+                          );
+                        }
+                      }}
+                    />
                     <Label htmlFor={allergen}>{allergen}</Label>
                   </div>
                 ))}
@@ -174,7 +254,7 @@ const ManualEntryForm = ({
           </div>
 
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Saving..." : "Save Product"}
+            {isLoading ? "Adding..." : "Add Food"}
           </Button>
         </form>
       </Card>
